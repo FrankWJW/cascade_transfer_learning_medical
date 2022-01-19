@@ -14,7 +14,7 @@ Second, download pretrained CL model in [Here](https://drive.google.com/drive/fo
 
 Third, run:
 ```bash
-python TCLFT_Kvasir.py --root_dir=<ROOT_OF_DATASET> --network_address=<PATH_FOR_THIS_REPO/model/sourcemodel/SourceNetwork>
+python TCL_Kvasir.py --root_dir=<ROOT_OF_DATASET> --network_address=<PATH_FOR_THIS_REPO/model/sourcemodel/SourceNetwork>
 ```
 
 ## License
