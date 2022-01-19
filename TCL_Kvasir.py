@@ -11,7 +11,7 @@ from torch import optim
 import torch
 import torch.nn as nn
 
-from data_manager.Kvaisir import get_dataloader_kvasir
+from data_manager.Kvasir import get_dataloader_kvasir
 from model.CascadeNet import load_conv
 from train import train
 from ray import tune
@@ -34,24 +34,17 @@ def load_dataset(args, config):
         var = 0
         amount = 0
 
-        dataloader = get_dataloader_kvasir(root, path, bs, ss, cur, n_wok, n_split, noise, mean, var, amount)
-        train_loader, val_loader = dataloader.get_data_loader()
-        return train_loader, val_loader
+        dataloader = get_dataloader_kvasir(root, path, bs, ss, cur, n_wok, n_split, noise, mean, var, amount,
+                                           random_state=config['partition_random_state'])
+        train_loader, val_loader, test_loader = dataloader.get_data_loader()
+        return train_loader, val_loader, test_loader
 
 
-def validate_aux(val_loader, model, criterion, n_class, print_freq):
+def validate_aux(val_loader, model, criterion, print_freq):
     """One epoch validation for aux type classifier"""
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
-    auc_meter = AucMeter()
-
-    if n_class == 2:
-        option = 'binary'
-    elif n_class > 2:
-        option = 'multi_cls'
-    else:
-        option = None
 
     # switch to evaluate mode
     model.eval()
@@ -79,14 +72,6 @@ def validate_aux(val_loader, model, criterion, n_class, print_freq):
             # measure accuracy and record loss
             acc1, _ = accuracy(output, target, topk=(1, 2))
 
-            if torch.cuda.is_available():
-                output = output.cpu()
-                target = target.cpu()
-
-            # auc update
-            auc_meter.update(torch.softmax(output, dim=1).detach().cpu().numpy()
-                             , target.detach().cpu().numpy(), input.size(0))
-
             losses.update(loss.item(), input.size(0))
             top1.update(acc1[0], input.size(0))
 
@@ -99,10 +84,8 @@ def validate_aux(val_loader, model, criterion, n_class, print_freq):
                     idx, len(val_loader), batch_time=batch_time, loss=losses,
                     top1=top1, ))
 
-        auc_meter.auc(option=option)  # calculate multicls auc
-
-        print(' * Acc@1 {top1.avg:.3f} AUC {auc.avg:.3f}'
-              .format(top1=top1, auc=auc_meter))
+        print(' * Acc@1 {top1.avg:.3f}'
+              .format(top1=top1))
 
         labels = np.hstack(labels)
         outputs = np.hstack(outputs)
@@ -112,14 +95,13 @@ def validate_aux(val_loader, model, criterion, n_class, print_freq):
 
     # return top1.avg, losses.avg, f1.avg, auc_meter.avg, auc_meter.cls_auc, ece.ece_, ece.acc, ece.conf
     return {'top1 accuracy': top1.avg.item(),
-            'auc': auc_meter.avg,
             'loss': losses.avg,
             'confusion_matrix': cfm,
             'predict_logit': logit_out,
             }
 
 
-def train_aux(config, args, train_loader, val_loader, checkpoint_dir, net):
+def train_aux(config, args, train_loader, val_loader, test_loader, checkpoint_dir, net):
     """main training function for aux"""
     # push model to gpu first
     # https://discuss.pytorch.org/t/code-that-loads-sgd-fails-to-load-adam-state-to-gpu/61783
@@ -171,10 +153,15 @@ def train_aux(config, args, train_loader, val_loader, checkpoint_dir, net):
                 last_lr = config['lr']
 
         train_acc, train_loss = train(step, train_loader, net, criterion, optimizer, args.print_freq)
-        result_val = validate_aux(val_loader, net, criterion, args.n_class,
-                                  print_freq=args.print_freq)
+        result_val = validate_aux(val_loader, net, criterion,
+                              print_freq=args.print_freq
+                              )
         val_acc = result_val['top1 accuracy']
         val_loss = result_val['loss']
+
+        result_test = validate_aux(test_loader, net, criterion, print_freq=args.print_freq)
+        test_acc = result_test['top1 accuracy']
+        predict_logit = result_test['predict_logit']
 
         # update current epoch
         if step % 5 == 0:
@@ -190,7 +177,8 @@ def train_aux(config, args, train_loader, val_loader, checkpoint_dir, net):
                     "model_state_dict": net.state_dict() if args.n_gpu == 1 else net.module.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "LRscheduler": lrscheduler.state_dict() if lrscheduler is not None else None,
-                    "score": val_acc,
+                    "score": test_acc,
+                    "predict_logit":predict_logit,
                 }, path)
         step += 1
 
@@ -205,7 +193,7 @@ def training(config, checkpoint_dir=None):
     config['pretrain'], config['layer_index'], config['model_name'] = config['pretrain_layer_model']
 
     # dataset
-    train_loader, val_loader = load_dataset(args, config)
+    train_loader, val_loader, test_loader = load_dataset(args, config)
 
     # model
     net = load_conv(args.network_address, args.n_class, int(config['layer_index']))
@@ -213,7 +201,7 @@ def training(config, checkpoint_dir=None):
     # summary(net, (3, 224, 224), device='cpu')
     # print(net)
 
-    train_aux(config, args, train_loader, val_loader, checkpoint_dir=checkpoint_dir, net=net)
+    train_aux(config, args, train_loader, val_loader, test_loader, checkpoint_dir=checkpoint_dir, net=net)
 
 
 if __name__ == '__main__':
@@ -226,9 +214,9 @@ if __name__ == '__main__':
     # folder
     parser.add_argument('--root_dir', type=str, default='/local/jw7u18/Kvaisir')
     parser.add_argument('--network_address', type=str,
-                        default='/home/jw7u18/Cascade_Transfer_Learning/model/sourcemodel/SourceNetwork')
+                        default='/home/jw7u18/Cascade_Transfer_Learning/model/sourcemodel/Source Network 3')
     parser.add_argument('--save_folder', type=str, help='folder for saving checkpoints')
-    parser.add_argument('--name', type=str, default='TCLFT_Kvasir', help='ray result folder name')
+    parser.add_argument('--name', type=str, default='TCL_Kvasir', help='ray result folder name')
 
     # name dataset
     parser.add_argument('--dataset', type=str, default='Kvasir')
@@ -268,13 +256,14 @@ if __name__ == '__main__':
         keep_checkpoints_num=1,
         config={
             "args": args,
-            "lr": 1e-3,
-            "batch_size": 32,
-            "currerent_fold": tune.grid_search([0, 1]),
-            "data_percentage": 0.01 if args.smoke_test else tune.grid_search([0.01, 0.05, 0.1, 0.5, 1.0]),
+            "lr": tune.loguniform(1e-5, 1e-1),
+            "batch_size": np.random.choice([8, 16, 32, 64]),
+            "currerent_fold": tune.grid_search([0, 1, 2, 3, 4]),
+            "data_percentage": tune.grid_search([0.15625, 0.234375, 0.3125]),
+            "partition_random_state": tune.grid_search([0, 1, 2]),  # partitioning dataset
             "pretrain_layer_model": tune.grid_search(list(model_layer_iter())),
         },
         name=args.name,
         resume=False,
-        local_dir='../ray_results'
+        local_dir='../ray_results/test'
     )
