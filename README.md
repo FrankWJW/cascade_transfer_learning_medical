@@ -1,6 +1,6 @@
 # Cascade Transfer Learning
 
-Github repository for paper "Deep Cascade Learning for Optimal Medical Image Classification via Transfer".
+Github repository for paper "Deep Cascade Learning for Optimal Medical Image Feature Representation".
 
 ## Installation
 
