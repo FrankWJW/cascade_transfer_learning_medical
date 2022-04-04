@@ -2,7 +2,6 @@
 """
 Created on Thu Oct 31 09:56:09 2019
 
-@author: xd3y15
 """
 
 import torch.nn as nn
