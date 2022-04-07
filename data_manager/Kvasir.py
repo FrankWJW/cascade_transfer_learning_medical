@@ -88,23 +88,3 @@ class get_dataloader_kvasir:
         loader_test = DataLoader(dataset=dataset_test, batch_size=self.batch_size, shuffle=False,
                                   num_workers=self.num_workers)
         return loader_train, loader_valid, loader_test
-
-
-if __name__ == '__main__':
-    root = '/Users/juanwenwang/Datasets/Kvaisir'
-    path = root + '/' + 'metadata.csv'
-    batch_size = 2
-    subset_size = 1.0
-    n_split = 2
-    currerent_fold = 0
-    num_workers = 0
-    noise = 'gaussian'
-    mean = 0
-    var = 0.01
-    amount = 0.05
-
-    dataloader = get_dataloader_kvasir(root, path, batch_size, subset_size, currerent_fold, num_workers, n_split,
-                                       noise, mean, var, amount)
-    train_loader, val_loader, _ = dataloader.get_data_loader()
-    print(iter(val_loader).__next__()[0].shape)
-    print(len(train_loader), len(val_loader))
