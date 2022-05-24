@@ -13,7 +13,7 @@ If want to train the network from scratch, please follow the step below:
 
 First, download dataset in [Here](https://www.kaggle.com/paultimothymooney/breast-histopathology-images).
 
-Third, run:
+Second, run:
 ```bash
 python TCL_IDC.py --root_dir=<ROOT_OF_DATASET> --network_address=./model/sourcemodel/SourceNetwork
 ```
