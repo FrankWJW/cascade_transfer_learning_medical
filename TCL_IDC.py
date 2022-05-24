@@ -10,8 +10,7 @@ from sklearn.metrics import confusion_matrix
 from torch import optim
 import torch
 import torch.nn as nn
-
-from data_manager.Kvasir import get_dataloader_kvasir
+from data_manager.IDC import get_dataloader
 from model.CascadeNet import load_conv
 from train import train
 from ray import tune
@@ -21,22 +20,23 @@ from util import AverageMeter, accuracy, AucMeter
 
 
 def load_dataset(args, config):
-    if args.dataset == 'Kvasir':
+    if args.dataset == 'IDC':
         root = args.root_dir
-        path = root + '/' + 'metadata.csv'
+        path = os.path.join(args.root_dir, 'Breast_histopathplogy_data.csv')
         bs = int(config['batch_size'])
         cur = config['currerent_fold']
         ss = config['data_percentage']
-        n_wok = args.num_worker
         n_split = args.n_split
+        n_wok = args.num_worker
         noise = None
         mean = 0
         var = 0
         amount = 0
 
-        dataloader = get_dataloader_kvasir(root, path, bs, ss, cur, n_wok, n_split, noise, mean, var, amount,
-                                           random_state=config['partition_random_state'])
+        dataloader = get_dataloader(root, path, bs, ss, cur, n_wok, n_split, noise, mean, var, amount,
+                                    random_state=config['partition_random_state'])
         train_loader, val_loader, test_loader = dataloader.get_data_loader()
+
         return train_loader, val_loader, test_loader
 
 
@@ -190,7 +190,7 @@ def train_aux(config, args, train_loader, val_loader, test_loader, checkpoint_di
 def training(config, checkpoint_dir=None):
     """main training function"""
     args = config['args']
-    config['pretrain'], config['layer_index'], config['model_name'] = config['pretrain_layer_model']
+    config['layer_index'], config['model_name'] = config['layer_model']
 
     # dataset
     train_loader, val_loader, test_loader = load_dataset(args, config)
@@ -212,43 +212,37 @@ if __name__ == '__main__':
         "--smoke-test", action="store_true", help="Finish quickly for testing")
 
     # folder
-    parser.add_argument('--root_dir', type=str, default='/local/jw7u18/Kvaisir')
+    parser.add_argument('--root_dir', type=str, default='/local/jw7u18/datasets/Breast Histopathology Images')
     parser.add_argument('--network_address', type=str,
                         default='/home/jw7u18/Cascade_Transfer_Learning/model/sourcemodel/Source Network 3')
     parser.add_argument('--save_folder', type=str, help='folder for saving checkpoints')
-    parser.add_argument('--name', type=str, default='TCL_Kvasir', help='ray result folder name')
+    parser.add_argument('--name', type=str, default='TCL_IDC', help='ray result folder name')
 
     # name dataset
-    parser.add_argument('--dataset', type=str, default='Kvasir')
-    parser.add_argument('--n_class', type=int, default=8)
-    parser.add_argument('--n_split', type=int, default=2)
+    parser.add_argument('--dataset', type=str, default='IDC')
+    parser.add_argument('--n_class', type=int, default=2)
+    parser.add_argument('--n_split', type=int, default=5)
 
-    parser.add_argument('--max_iter', type=int, default=55, help='max number of epoch')
+    parser.add_argument('--max_iter', type=int, default=200, help='max number of epoch')
 
     # others
-    parser.add_argument('--print_freq', type=int, default=512, help='iterations')
-    parser.add_argument('--n_gpu', default=4.0, type=float)
-    parser.add_argument('--num_worker', type=int, default=16)
+    parser.add_argument('--print_freq', type=int, default=200, help='iterations')
+    parser.add_argument('--n_gpu', default=1.0, type=float)
+    parser.add_argument('--num_worker', type=int, default=8)
 
     args = parser.parse_args()
 
 
     def model_layer_iter():
         for model in ['TCL']:
-            if model == 'E2EResNet18':
-                for p in [True, False]:
-                    pretrain = p
-                    layer = 'None'
-                    yield pretrain, layer, model
-            elif model in ['TCL']:
-                pretrain = False
+            if model in ['TCL']:
                 for l in [3,4,5,6]:
                     layer = l
-                    yield pretrain, layer, model
+                    yield layer, model
 
     analysis = tune.run(
         training,
-        num_samples=1,
+        num_samples=50,
         resources_per_trial={"cpu": 4, "gpu": args.n_gpu},
         mode="max",
         export_formats=[ExportFormat.MODEL],
@@ -257,13 +251,14 @@ if __name__ == '__main__':
         config={
             "args": args,
             "lr": tune.loguniform(1e-5, 1e-1),
-            "batch_size": np.random.choice([8, 16, 32, 64]),
-            "currerent_fold": tune.grid_search([0, 1, 2, 3, 4]),
-            "data_percentage": tune.grid_search([0.15625, 0.234375, 0.3125]),
-            "partition_random_state": tune.grid_search([0, 1, 2]),  # partitioning dataset
-            "pretrain_layer_model": tune.grid_search(list(model_layer_iter())),
+            "batch_size": tune.choice([8, 16, 32, 64]),
+            "currerent_fold": tune.choice([0, 1, 2, 3, 4]),
+            "data_percentage": tune.sample_from(lambda spec: spec.config.training_size/219388),
+            "training_size": tune.grid_search([400, 600, 800]),
+            "partition_random_state": tune.choice([0, 1, 2]),  # partitioning dataset
+            "layer_model": tune.grid_search(list(model_layer_iter()))
         },
         name=args.name,
         resume=False,
-        local_dir='../ray_results/test'
+        local_dir='./'
     )
