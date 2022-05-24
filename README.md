@@ -15,7 +15,7 @@ First, download dataset in [Here](https://www.kaggle.com/paultimothymooney/breas
 
 Third, run:
 ```bash
-python TCL_IDC.py --root_dir=<ROOT_OF_DATASET> --network_address=<./model/sourcemodel/SourceNetwork>
+python TCL_IDC.py --root_dir=<ROOT_OF_DATASET> --network_address=./model/sourcemodel/SourceNetwork
 ```
 
 ## License
