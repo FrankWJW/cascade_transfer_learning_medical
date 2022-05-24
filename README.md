@@ -6,7 +6,9 @@ Github repository for paper "Deep Cascade Learning for Optimal Medical Image Fea
 Please check out requirements.txt and install package accordingly.
 
 ## Reproducing Figure 1(b)
-TCL_IDC.ipynb reproduce the result for Figure 1(b) in the paper. If want to train the network from scratch, please follow the step below:
+First, download all pretrain models in 
+TCL_IDC.ipynb reproduce the result for Figure 1(b) in the paper. 
+If want to train the network from scratch, please follow the step below:
 
 ## Steps to train the network from scratch
 
