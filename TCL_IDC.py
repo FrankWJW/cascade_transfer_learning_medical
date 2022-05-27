@@ -1,5 +1,5 @@
 """
-TCL on Kvasir dataset
+TCL on IDC dataset
 """
 import os
 
