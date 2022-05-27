@@ -16,7 +16,7 @@ from train import train
 from ray import tune
 from ray.tune.trial import ExportFormat
 
-from util import AverageMeter, accuracy, AucMeter
+from util import AverageMeter, accuracy
 
 
 def load_dataset(args, config):
@@ -28,13 +28,8 @@ def load_dataset(args, config):
         ss = config['data_percentage']
         n_split = args.n_split
         n_wok = args.num_worker
-        noise = None
-        mean = 0
-        var = 0
-        amount = 0
 
-        dataloader = get_dataloader(root, path, bs, ss, cur, n_wok, n_split, noise, mean, var, amount,
-                                    random_state=config['partition_random_state'])
+        dataloader = get_dataloader(root, path, bs, ss, cur, n_wok, n_split)
         train_loader, val_loader, test_loader = dataloader.get_data_loader()
 
         return train_loader, val_loader, test_loader
@@ -216,7 +211,7 @@ if __name__ == '__main__':
     parser.add_argument('--network_address', type=str,
                         default='/home/jw7u18/Cascade_Transfer_Learning/model/sourcemodel/Source Network 3')
     parser.add_argument('--save_folder', type=str, help='folder for saving checkpoints')
-    parser.add_argument('--name', type=str, default='TCL_IDC', help='ray result folder name')
+    parser.add_argument('--name', type=str, default='test_result', help='ray result folder name')
 
     # name dataset
     parser.add_argument('--dataset', type=str, default='IDC')

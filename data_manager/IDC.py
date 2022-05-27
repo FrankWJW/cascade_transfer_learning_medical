@@ -1,18 +1,13 @@
-import cv2
-import torch
-from torch.utils.data import TensorDataset, DataLoader, Dataset, WeightedRandomSampler
-import torchvision.transforms as transforms
-from sklearn.model_selection import KFold
-import torchvision
-import torch.nn.functional as F
-import torch.nn as nn
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
 import os
+
+import cv2
 import numpy as np
 import pandas as pd
-from os import listdir
-from data_manager.transform_config import transform_options, add_random_noise_idc
+from sklearn.model_selection import KFold
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
+
+from data_manager.transform_config import idc_train_config, idc_test_config
 
 
 class IDC(Dataset):
@@ -50,18 +45,11 @@ class IDC(Dataset):
 
 
 class get_dataloader:
-    def __init__(self, data_root, path, batch_size, subset_size, currerent_fold, num_workers, n_split=5, noise='none',
-                 mean=0, var=0.01, amount=0.05, random_state=0):
-        #  "../Breast_histopathplogy_data1.csv"
+    def __init__(self, data_root, path, batch_size, subset_size, currerent_fold,
+                 num_workers, n_split=5, random_state=0):
         self.ran_s = random_state
-        self.trans_train = transform_options['idc_train']
-        self.trans_valid = transform_options['idc_val']
-        self.trans_test = transform_options['idc_test']
-        if noise in ['gaussian', 'speckle', 's&p', 'poisson']:
-            self.trans_valid = add_random_noise_idc(noise, mean=mean, var=var, amount=amount)
-            print(self.trans_valid)
-        else:
-            pass
+        self.trans_train = idc_train_config
+        self.trans_valid = idc_test_config
 
         self.data = pd.read_csv(path).iloc[:, 1:]
         self.train, self.test = train_test_split(self.data, test_size=0.2
@@ -92,7 +80,6 @@ class get_dataloader:
         train_p = self.data.loc[self.data.patient_id.isin(train_id), :].copy()[['path', 'target']]
         val_p = self.data.loc[self.data.patient_id.isin(val_id), :].copy()[['path', 'target']]
         test = self.test.copy()[['path', 'target']]
-        # val_p, _ = train_test_split(val_p, test_size=0.7, random_state=0) # 30% validation set
 
         if self.subset_size == 1.0:
             pass
@@ -103,6 +90,7 @@ class get_dataloader:
         dataset_valid = IDC(self.dataroot, df_data=val_p, transform=self.trans_valid)
         dataset_test = IDC(self.dataroot, df_data=test, transform=self.trans_valid)
 
+        # handle data imbalance
         sampler = WeightedRandomSampler(weights=dataset_train.sample_weights, num_samples=len(dataset_train))
 
         loader_train = DataLoader(dataset=dataset_train, sampler=sampler, batch_size=self.batch_size,
@@ -123,20 +111,8 @@ if __name__ == '__main__':
     n_split = 5
     currerent_fold = 0
     num_workers = 0
-    noise = 'None'
-    mean = 0
-    var = 0.01
-    amount = 0.05
 
-    dataloader = get_dataloader(root, path, batch_size, subset_size, currerent_fold, num_workers, n_split,
-                                noise, mean, var, amount)
+    dataloader = get_dataloader(root, path, batch_size, subset_size, currerent_fold, num_workers, n_split)
     train_loader, val_loader, test_loader = dataloader.get_data_loader()
     print(iter(val_loader).__next__())
     print(len(train_loader), len(val_loader), len(test_loader))
-
-    # for i, (data, target) in enumerate(train_loader):
-    #     print ("batch index {}, 0/1: {}/{}".format(
-    #         i,
-    #         len(np.where(target.numpy() == 0)[0]),
-    #         len(np.where(target.numpy() == 1)[0]),
-    #     ))

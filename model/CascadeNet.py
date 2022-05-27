@@ -1,15 +1,9 @@
 import sys
-
-from torchsummary import summary
-
-from model.resnet import resnet18
-
 sys.path.append('./model/sourcemodel')
 sys.path.append('../Cascade_Transfer_Learning/model/sourcemodel')
 import torch
 import torch.nn as nn
 import os
-import Build_Network
 
 
 def freeze(m):
@@ -23,18 +17,6 @@ def weight_reset(m):
         for para in m.parameters():
             para.requires_grad = True
         m.reset_parameters()
-
-
-def reset_all_parameters_dorisnet(net):
-    for child in net.children():
-        print('child', child)
-        if isinstance(child, Build_Network.non_first_layer_cascade_Net):
-            for _, c in enumerate(child.children()):
-                print('c', c)
-                weight_reset(c)
-        else:
-            weight_reset(child)
-
 
 def load_conv(NetAddress, n_class, layer_index=11):
     model = torch.load(os.path.join(NetAddress, f'layer {layer_index}/trained model'),
