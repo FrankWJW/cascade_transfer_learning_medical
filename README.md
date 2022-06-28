@@ -7,9 +7,9 @@ Please check out requirements.txt and install package accordingly.
 
 ## Reproducing Figure 1(b)
 check TCL_IDC.ipynb reproduce the result for Figure 1(b) in the paper. 
-If want to train the network from scratch, please follow the step below:
+If want to train the network, please follow the step below:
 
-## Steps to train the network from scratch
+## Steps to train the network
 
 First, download dataset in [Here](https://www.kaggle.com/paultimothymooney/breast-histopathology-images).
 
@@ -18,7 +18,7 @@ Second, run:
 python TCL_IDC.py --root_dir=<ROOT_OF_DATASET> --network_address=./model/sourcemodel/SourceNetwork
 ```
 
-Additional place to download large files in
+Additional place to download trained models
 [Here](https://drive.google.com/drive/folders/1yqCOjaommJvcErzz01LiJaQbX8V6wy2b?usp=sharing)
 
 ## License
