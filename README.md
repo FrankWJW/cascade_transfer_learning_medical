@@ -17,9 +17,7 @@ Second, run:
 ```bash
 python TCL_IDC.py --root_dir=<ROOT_OF_DATASET> --network_address=./model/sourcemodel/SourceNetwork
 ```
-
-Additional place to download trained models
-[Here](https://drive.google.com/drive/folders/1yqCOjaommJvcErzz01LiJaQbX8V6wy2b?usp=sharing)
+Download trained models in [Here](https://drive.google.com/drive/folders/1yqCOjaommJvcErzz01LiJaQbX8V6wy2b?usp=sharing)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
