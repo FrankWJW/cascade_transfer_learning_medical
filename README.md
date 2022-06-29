@@ -13,13 +13,14 @@ If want to train the network, please follow the step below:
 
 First, download dataset in [Here](https://www.kaggle.com/paultimothymooney/breast-histopathology-images).
 
-Second Download trained models in [Here](https://drive.google.com/drive/folders/1yqCOjaommJvcErzz01LiJaQbX8V6wy2b?usp=sharing)
+Second, Download trained models in [Here](https://drive.google.com/drive/folders/1yqCOjaommJvcErzz01LiJaQbX8V6wy2b?usp=sharing)
 and put them into SourceNetwork folder.
 
 Third, run:
 ```bash
 python TCL_IDC.py --root_dir=<ROOT_OF_DATASET> --network_address=./model/sourcemodel/SourceNetwork
 ```
+Download trained models in [Here](https://drive.google.com/drive/folders/1yqCOjaommJvcErzz01LiJaQbX8V6wy2b?usp=sharing)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
